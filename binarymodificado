@@ -1,0 +1,189 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct node * link;
+struct node {
+  link l;
+  link r;
+  int item;
+  int N;      // quantidade de nos na subarvore
+  int id;     // id do nó
+};
+
+typedef struct tree {
+  link head; // raiz
+  link z;    // nó externo
+} * Tree;
+
+int id = 0;
+
+link novoNo (int item, link l, link r) {
+  link t = malloc(sizeof(struct node));
+  t->item = item;
+  t->l = l;
+  t->r = r;
+  t->N = 1; // cada nó é inicialmente uma folha
+  t->id = id++;
+  return t;
+}
+
+Tree createTree(){
+  Tree t = malloc (sizeof (struct tree));
+  t->z = malloc (sizeof(struct node));
+  t->head = t->z;
+  t->z->l = t->z;
+  t->z->N = 0; // altura do nó externo é 0
+  t->z->r = t->z;
+  return t;
+}
+
+int max(int a, int b) {
+    return (a > b)? a : b;
+}
+
+link rotR(Tree t, link h) {
+    link x = h->l;
+    h->l = x->r;
+    x->r = h;
+
+    // Atualiza a altura e a contagem de nós
+    h->N = max(h->l->N, h->r->N) + 1;
+    x->N = max(x->l->N, x->r->N) + 1;
+
+    return x;
+}
+
+link rotL(Tree t, link h) {
+    link x = h->r;
+    h->r = x->l;
+    x->l = h;
+
+    // Atualiza a altura e a contagem de nós
+    h->N = max(h->l->N, h->r->N) + 1;
+    x->N = max(x->l->N, x->r->N) + 1;
+
+    return x;
+}
+
+link AVLinsertR (Tree t, link h, int item){
+    int balance;
+
+    if (h == t->z)
+        return novoNo(item, t->z, t->z);
+
+    if (item < h->item)
+        h->l  = AVLinsertR(t, h->l, item);
+    else if (item > h->item)
+        h->r = AVLinsertR(t, h->r, item);
+    else // Valores iguais não são permitidos na árvore AVL
+        return h;
+
+    // Atualiza a altura do nó ancestral
+    h->N = max(h->l->N, h->r->N) + 1;
+
+    // Obtém o fator de balanceamento
+    balance = h->l->N - h->r -> N;
+
+    // Se o nó está desbalanceado, então ocorre uma das quatro situações
+    // Rotação simples à direita (Left Left Case)
+    if (balance > 1 && item < h -> l -> item)
+        return rotR(t, h);
+
+    // Rotação simples à esquerda (Right Right Case)
+    if (balance < -1 && item > h -> r -> item)
+        return rotL(t, h);
+
+    // Rotação dupla à direita (Left Right Case)
+    if (balance > 1 && item > h -> l -> item) {
+        h -> l = rotL(t, h -> l);
+        return rotR(t, h);
+    }
+
+    // Rotação dupla à esquerda (Right Left Case)
+    if (balance < -1 && item < h -> r -> item) {
+        h -> r = rotR(t, h -> r);
+        return rotL(t, h);
+    }
+
+   /* retorna o ponteiro do nó (inalterado) */
+   return h;
+}
+
+void insert (Tree t, int item){
+   if(t -> head == t -> z) {
+       t -> head = novoNo(item, t -> z, t -> z);
+   } else {
+       t -> head = AVLinsertR(t, t -> head, item); // Atualiza a raiz da árvore
+   }
+}
+
+void imprimeEmOrdem (Tree t, link h){
+  if(h == t->z) return;
+  imprimeEmOrdem (t, h->l);
+  printf("<chave: %d N: %d>", h->item, h->N);
+  imprimeEmOrdem (t, h->r);
+}
+
+void imprimePosOrdem (Tree t, link h){
+  if(h == t->z) return;
+  imprimePosOrdem (t, h->l);
+  imprimePosOrdem (t, h->r);
+  printf("<chave: %d N: %d>", h->item, h->N);
+}
+
+void imprimePreOrdem (Tree t, link h, int k) {
+  if(h == t->z) return;
+  for(int i = 0; i < k; i++)
+    printf (" . ");
+  printf("<chave: %d N: %d>\n", h->item, h->N);
+  imprimePreOrdem (t, h->l, k + 1);
+  imprimePreOrdem (t, h->r, k + 1);
+}
+
+link searchR(Tree t, link h, int query) {
+  if (h == t->z) {
+    return NULL;
+  }
+  if(h->item == query)
+    return h;
+  if (h->item >= query)
+    return searchR(t, h->l, query);
+  return searchR(t, h->r, query);
+}
+
+link search (Tree t, int query){
+   return searchR(t, t->head, query);
+}
+
+int main () {
+  Tree t = createTree();
+  link x;
+
+  // Inserindo valores na árvore
+  insert(t, 50);
+  insert(t, 30);
+  insert(t, 20);
+  insert(t, 40);
+  insert(t, 70);
+  insert(t, 60);
+  insert(t, 80);
+
+  // Imprimindo a árvore em diferentes ordens
+  printf("Imprime em ordem:\n");
+  imprimeEmOrdem(t, t->head);
+  printf("\n");
+
+  printf("Imprime pos ordem:\n");
+  imprimePosOrdem(t, t->head);
+  printf("\n");
+
+  printf("Imprime pre ordem:\n");
+  imprimePreOrdem(t, t->head,0);
+link result = search(t, 30);
+
+  if(result != NULL)
+    printf("\nEncontrado: %d\n", result->item);
+  else
+    printf("Não encontrado\n");
+  return 0;
+}
